@@ -4,20 +4,20 @@ const db = mysql.createConnection(
     {
       host: 'localhost',
       user: 'root',
-      password: '',
+      password: 'password',
       database: 'staff_db'
     },
     console.log(`Connected to the staff_db database.`)
 );
 
 const inquirer = require('inquirer');
-
+// prompts the user to pick an option so the proper function can be called and infomraiton can be entered.
 const promptUser = () => {
     return inquirer.prompt([
         {
             type: 'list',
-            message: "Which action would you like to take?",
             name: 'selection',
+            message: "Which action would you like to take?",
             choices: [
                 "View all departments",
                 "View all roles",
@@ -25,11 +25,12 @@ const promptUser = () => {
                 "Add a department",
                 "Add a role",
                 "Add an employee",
-                "Update an employee role"
+                "Update an employee role",
+                "Quit"
             ]
         }
     ])
-    .then((data) => {
+    .then((data) => { 
         switch (data.selection) {
             case "View all departments":
                 viewAllDepartments();
@@ -58,11 +59,12 @@ const promptUser = () => {
             case "Update an employee role":
                 updateEmployeeRole();
                 break;
+            default:
+                quit();
         }
     })
 };
 
-// Initiates user prompt
 promptUser();
 
 const viewAllDepartments = () => {
@@ -99,6 +101,7 @@ const viewAllEmployees = () => {
         promptUser();
     })
 }
+// Asks for Department information and then queries the information to populate a the arrays with the information provided.
 const addDepartment = () => {
     return inquirer.prompt([
         {
@@ -114,6 +117,7 @@ const addDepartment = () => {
         })
     })
 }
+// Asks for role information and then queries the information to populate a the arrays with the information provided.
 const addRole = () => {
     let departmentArray = [];
     db.query(`SELECT * FROM department`, function (err, results) {
@@ -139,7 +143,6 @@ const addRole = () => {
             }
         ])
         .then((data) => {
-            // Get's department id
             db.query(`SELECT id FROM department WHERE department.name = ?`, data.department, (err, results) => {
                 let department_id = results[0].id;
             db.query(`INSERT INTO role(title, salary, department_id)
@@ -151,16 +154,14 @@ const addRole = () => {
         })
     })
 }
-
+// Asks for employee information and then queries the information to populate a the arrays with the information provided.
 const addEmployee = () => {
     const roleArray= [];
     const employeeArray= [];
-    // populates role array with all roles
     db.query(`SELECT * FROM role`, function (err, results) {
         for (let i = 0; i < results.length; i++) {
             roleArray.push(results[i].title);
         }
-    // populates employee array with all employees
     db.query(`SELECT * FROM employee`, function (err, results) {
         for (let i = 0; i < results.length; i++) {
             let employeeName = `${results[i].first_name} ${results[i].last_name}`
@@ -195,7 +196,6 @@ const addEmployee = () => {
             let last_name = data.last_name;
             let role_id = '';
             let manager = '';
-            // populates role id
             db.query(`SELECT id FROM role WHERE role.title = ?`, data.role, (err, results) => {
                 role_id = results[0].id;
             });
@@ -208,7 +208,6 @@ const addEmployee = () => {
                     choices: employeeArray
                     }   
                 ]).then((data) => {
-                    // get role id
                     db.query(`SELECT id FROM role WHERE role.title = ?`, roleName, (err, results) => {
                         role_id = results[0].id;
                     })
@@ -222,12 +221,9 @@ const addEmployee = () => {
                     })
                 })
             } else {
-                // sets manager to null
                 manager = null;
-                // get role id
                 db.query(`SELECT id FROM role WHERE role.title = ?`, roleName, (err, results) => {
                     role_id = results[0].id;
-                    // query 555 still doesnt work even when manager is null
                     db.query(`INSERT INTO employee (first_name, last_name, role_id, manager_id) 
                     VALUES (?,?,?,?)`, [data.first_name, data.last_name, role_id, manager], (err, results) => {
                         console.log("\nNew employee added. See below:");
@@ -240,16 +236,14 @@ const addEmployee = () => {
 })
 }
 
-
+// Asks for employee information to find and update.
 const updateEmployeeRole = () => {
     const roleArray= [];
     const employeeArray= [];
-    // populates role array with all roles
     db.query(`SELECT * FROM role`, function (err, results) {
         for (let i = 0; i < results.length; i++) {
             roleArray.push(results[i].title);
         }
-    // populates employee array with all employees
     db.query(`SELECT * FROM employee`, function (err, results) {
         for (let i = 0; i < results.length; i++) {
             let employeeName = `${results[i].first_name} ${results[i].last_name}`
@@ -269,7 +263,6 @@ const updateEmployeeRole = () => {
                 choices: roleArray
             },
         ]).then((data) => {
-            // get role id
             db.query(`SELECT id FROM role WHERE role.title = ?;`, data.role, (err, results) => {
                 role_id = results[0].id;
                 db.query(`SELECT id FROM employee WHERE employee.first_name = ? AND employee.last_name = ?;`, data.employee.split(" "), (err, results) => {
@@ -283,4 +276,8 @@ const updateEmployeeRole = () => {
         })
     })
 })
+}
+function quit() {
+    console.log("Quitting...");
+    process.exit();
 }
